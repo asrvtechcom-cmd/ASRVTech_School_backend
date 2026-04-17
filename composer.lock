@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "277a7a774a7587e0f639e73c5306de23",
+    "content-hash": "1383564775216d3457f29b6beee1938a",
     "packages": [
         {
             "name": "appwrite/appwrite",
@@ -137,7 +137,8 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.2"
+        "php": "^8.2",
+        "ext-pdo_mysql": "*"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"
