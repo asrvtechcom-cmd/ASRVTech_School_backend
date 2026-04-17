@@ -21,18 +21,26 @@ class Database
         $url = $this->getEnvVar('MYSQL_URL', $this->getEnvVar('DATABASE_URL', ''));
         
         if (!empty($url)) {
-            // Ensure URL has a scheme for parse_url to work correctly
-            if (!str_contains($url, '://')) {
-                $url = 'mysql://' . $url;
+            $url = trim($url);
+            // Robust regex to parse mysql://user:pass@host:port/dbname
+            if (preg_match('/^mysql:\/\/([^:]+):([^@]+)@([^:\/]+)(?::(\d+))?\/([^\?]+)/', $url, $matches)) {
+                $this->username = $matches[1];
+                $this->password = $matches[2];
+                $this->host = $matches[3];
+                $this->port = (string) ($matches[4] ?? '3306');
+                $this->dbName = $matches[5];
+                $this->charset = 'utf8mb4';
+            } else {
+                // Last ditch effort: if Regex fails, try parse_url but with scheme check
+                if (!str_contains($url, '://')) { $url = 'mysql://' . $url; }
+                $parsed = parse_url($url);
+                $this->host = $parsed['host'] ?? '127.0.0.1';
+                $this->port = (string) ($parsed['port'] ?? '3306');
+                $this->dbName = ltrim($parsed['path'] ?? '/kindergarten_db', '/');
+                $this->username = $parsed['user'] ?? 'root';
+                $this->password = $parsed['pass'] ?? '';
+                $this->charset = 'utf8mb4';
             }
-            
-            $parsed = parse_url($url);
-            $this->host = $parsed['host'] ?? '127.0.0.1';
-            $this->port = (string) ($parsed['port'] ?? '3306');
-            $this->dbName = ltrim($parsed['path'] ?? '/kindergarten_db', '/');
-            $this->username = $parsed['user'] ?? 'root';
-            $this->password = $parsed['pass'] ?? '';
-            $this->charset = 'utf8mb4';
         } else {
             // 2. Fallback to individual variables if no unified URL
             $this->host = $this->getEnvVar('DB_HOST', $this->getEnvVar('MYSQLHOST', '127.0.0.1'));
