@@ -5,6 +5,19 @@ declare(strict_types=1);
 // When served from public/, the root is one directory up
 $root = dirname(__DIR__);
 
+// Safety check - if vendor is missing, show error instead of crashing
+if (!file_exists($root . '/vendor/autoload.php')) {
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Vendor autoloader not found. composer install may have failed.',
+        'root' => $root,
+        'files' => scandir($root)
+    ]);
+    exit;
+}
+
 require_once $root . '/vendor/autoload.php';
 
 use App\Utils\Helper;
