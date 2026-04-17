@@ -1,2 +1,0 @@
-[phases.install]
-cmds = ["composer install --no-dev --optimize-autoloader"]

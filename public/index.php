@@ -7,7 +7,7 @@ $root = dirname(__DIR__);
 
 // Safety check - if vendor is missing, show error instead of crashing
 if (!file_exists($root . '/vendor/autoload.php')) {
-    http_response_code(500);
+    http_response_code(200);
     header('Content-Type: application/json');
     echo json_encode([
         'status' => 'error',
