@@ -17,12 +17,18 @@ class Database
 
     public function __construct()
     {
-        $this->host = $this->getEnvVar('DB_HOST', '127.0.0.1');
-        $this->port = $this->getEnvVar('DB_PORT', '3306');
-        $this->dbName = $this->getEnvVar('DB_NAME', 'kindergarten_db');
-        $this->username = $this->getEnvVar('DB_USER', 'root');
-        $this->password = $this->getEnvVar('DB_PASS', '');
+        // Fallback to Railway's native environment variables if DB_* aren't set
+        $this->host = $this->getEnvVar('DB_HOST', $this->getEnvVar('MYSQLHOST', '127.0.0.1'));
+        $this->port = $this->getEnvVar('DB_PORT', $this->getEnvVar('MYSQLPORT', '3306'));
+        $this->dbName = $this->getEnvVar('DB_NAME', $this->getEnvVar('MYSQLDATABASE', 'kindergarten_db'));
+        $this->username = $this->getEnvVar('DB_USER', $this->getEnvVar('MYSQLUSER', 'root'));
+        $this->password = $this->getEnvVar('DB_PASS', $this->getEnvVar('MYSQLPASSWORD', ''));
         $this->charset = $this->getEnvVar('DB_CHARSET', 'utf8mb4');
+
+        // Prevent PDO from using Unix socket if host is 'localhost'
+        if ($this->host === 'localhost') {
+            $this->host = '127.0.0.1';
+        }
     }
 
     private function getEnvVar(string $key, string $default): string
