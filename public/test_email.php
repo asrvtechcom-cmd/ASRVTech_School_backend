@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use App\Utils\Mailer;
+use App\Utils\Helper;
+use App\Utils\Response;
+
+// Load environment in case we are running locally, 
+// though on Railway they should be in the environment already.
+Helper::loadEnvFile(__DIR__ . '/../config.env');
+
+$targetEmail = 'singhshubham29392@gmail.com';
+
+echo "<h1>SMTP Email Test</h1>";
+echo "Sending test email to: <strong>{$targetEmail}</strong><br/>";
+echo "Using SMTP User: " . (getenv('SMTP_USER') ?: 'NOT SET') . "<br/><br/>";
+
+try {
+    // We'll use the Password Reset template as a test since it has a clear link
+    $success = Mailer::sendPasswordReset($targetEmail, "https://asrvtechschoolbackend-production.up.railway.app/test-success");
+
+    if ($success) {
+        echo "<h2 style='color: green;'>✅ SUCCESS! Email sent successfully.</h2>";
+        echo "Please check the inbox (and spam folder) for <strong>{$targetEmail}</strong>.";
+    } else {
+        echo "<h2 style='color: red;'>❌ FAILED! Email could not be sent.</h2>";
+        echo "Check your Railway logs or ensure SMTP credentials are correct.";
+    }
+} catch (\Exception $e) {
+    echo "<h2 style='color: red;'>❌ ERROR: Exception occurred</h2>";
+    echo "Message: " . $e->getMessage();
+}
+
+echo "<br/><br/><a href='/debug.php'>Back to Debug Info</a>";
