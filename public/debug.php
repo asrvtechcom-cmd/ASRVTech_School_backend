@@ -15,8 +15,8 @@ echo "DB_PORT = " . (getenv('DB_PORT') ?: $_ENV['DB_PORT'] ?? 'NOT SET') . "\n";
 echo "</pre>";
 
 echo "<h2>Testing Autoloader...</h2>";
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    require_once __DIR__ . '/vendor/autoload.php';
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
     echo "<p style='color:green'>✅ vendor/autoload.php found!</p>";
 } else {
     echo "<p style='color:red'>❌ vendor/autoload.php NOT FOUND!</p>";
@@ -24,7 +24,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 
 echo "<h2>Testing DB Connection...</h2>";
 try {
-    require_once __DIR__ . '/vendor/autoload.php';
+    require_once __DIR__ . '/../vendor/autoload.php';
     $db = (new \App\Config\Database())->connect();
     echo "<p style='color:green'>✅ Database connected successfully!</p>";
 } catch (\Exception $e) {

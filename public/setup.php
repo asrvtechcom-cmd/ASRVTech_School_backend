@@ -1,12 +1,12 @@
 <?php
 // setup.php - Quick DB Setup Script
-require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/src/Config/Database.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../src/Config/Database.php';
 
 try {
     $db = (new \App\Config\Database())->connect();
     
-    $sql = file_get_contents(__DIR__ . '/database/schema.sql');
+    $sql = file_get_contents(__DIR__ . '/../database/schema.sql');
     
     if (!$sql) {
         die("Could not read schema.sql");
