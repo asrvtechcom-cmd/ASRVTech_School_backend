@@ -19,6 +19,9 @@ class Response
             $response['data'] = $data ?? [$messageOrDataName => true];
         } else {
             $response['message'] = $messageOrDataName;
+            if ($data !== null) {
+                $response['error_details'] = $data;
+            }
         }
 
         echo json_encode($response, JSON_UNESCAPED_UNICODE);
