@@ -17,13 +17,26 @@ class Database
 
     public function __construct()
     {
-        // Fallback to Railway's native environment variables if DB_* aren't set
-        $this->host = $this->getEnvVar('DB_HOST', $this->getEnvVar('MYSQLHOST', '127.0.0.1'));
-        $this->port = $this->getEnvVar('DB_PORT', $this->getEnvVar('MYSQLPORT', '3306'));
-        $this->dbName = $this->getEnvVar('DB_NAME', $this->getEnvVar('MYSQLDATABASE', 'kindergarten_db'));
-        $this->username = $this->getEnvVar('DB_USER', $this->getEnvVar('MYSQLUSER', 'root'));
-        $this->password = $this->getEnvVar('DB_PASS', $this->getEnvVar('MYSQLPASSWORD', ''));
-        $this->charset = $this->getEnvVar('DB_CHARSET', 'utf8mb4');
+        // 1. First, check if Railway's unified URL variables exist
+        $url = $this->getEnvVar('MYSQL_URL', $this->getEnvVar('DATABASE_URL', ''));
+        
+        if (!empty($url)) {
+            $parsed = parse_url($url);
+            $this->host = $parsed['host'] ?? '127.0.0.1';
+            $this->port = (string) ($parsed['port'] ?? '3306');
+            $this->dbName = ltrim($parsed['path'] ?? '/kindergarten_db', '/');
+            $this->username = $parsed['user'] ?? 'root';
+            $this->password = $parsed['pass'] ?? '';
+            $this->charset = 'utf8mb4';
+        } else {
+            // 2. Fallback to individual variables if no unified URL
+            $this->host = $this->getEnvVar('DB_HOST', $this->getEnvVar('MYSQLHOST', '127.0.0.1'));
+            $this->port = $this->getEnvVar('DB_PORT', $this->getEnvVar('MYSQLPORT', '3306'));
+            $this->dbName = $this->getEnvVar('DB_NAME', $this->getEnvVar('MYSQLDATABASE', 'kindergarten_db'));
+            $this->username = $this->getEnvVar('DB_USER', $this->getEnvVar('MYSQLUSER', 'root'));
+            $this->password = $this->getEnvVar('DB_PASS', $this->getEnvVar('MYSQLPASSWORD', ''));
+            $this->charset = $this->getEnvVar('DB_CHARSET', 'utf8mb4');
+        }
 
         // Prevent PDO from using Unix socket if host is 'localhost'
         if ($this->host === 'localhost') {
