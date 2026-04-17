@@ -19,8 +19,9 @@ echo "Sending test email to: <strong>{$targetEmail}</strong><br/>";
 echo "Using SMTP User: " . (getenv('SMTP_USER') ?: 'NOT SET') . "<br/><br/>";
 
 try {
-    // We'll use the Password Reset template as a test since it has a clear link
-    $success = Mailer::sendPasswordReset($targetEmail, "https://asrvtechschoolbackend-production.up.railway.app/test-success");
+    // Enable verbose debug output for troubleshooting
+    // Note: This will output raw SMTP conversation to the screen
+    $success = Mailer::sendTestEmailWithDebug($targetEmail);
 
     if ($success) {
         echo "<h2 style='color: green;'>✅ SUCCESS! Email sent successfully.</h2>";

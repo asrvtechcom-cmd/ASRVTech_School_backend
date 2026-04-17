@@ -98,4 +98,22 @@ class Mailer
             return false;
         }
     }
+
+    public static function sendTestEmailWithDebug(string $targetEmail): bool
+    {
+        try {
+            $mail = self::getMailer();
+            $mail->SMTPDebug = 2; // Output detailed server-to-client exchange
+            $mail->Debugoutput = 'echo';
+            
+            $mail->addAddress($targetEmail);
+            $mail->Subject = 'SMTP Debug Test';
+            $mail->Body = '<h1>Testing SMTP</h1><p>If you see this, authentication worked!</p>';
+
+            return $mail->send();
+        } catch (Exception $e) {
+            echo "<br/><strong>Detailed Error:</strong> " . $mail->ErrorInfo . "<br/>";
+            return false;
+        }
+    }
 }
