@@ -18,6 +18,14 @@ if (!file_exists($root . '/vendor/autoload.php')) {
     exit;
 }
 
+// 1. Instant Health Check for Railway (MUST be before database connection)
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/') {
+    http_response_code(200);
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 'online', 'message' => 'ASRVTech API is running', 'php' => phpversion()]);
+    exit;
+}
+
 require_once $root . '/vendor/autoload.php';
 
 use App\Utils\Helper;
