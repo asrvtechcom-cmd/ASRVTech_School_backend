@@ -5,24 +5,25 @@ error_reporting(E_ALL);
 
 echo "<h1>PHP Debug Info</h1>";
 echo "<h2>PHP Version: " . phpversion() . "</h2>";
-echo "<h2>Environment Variables:</h2>";
-echo "<pre>";
-echo "DB_HOST = " . (getenv('DB_HOST') ?: $_ENV['DB_HOST'] ?? 'NOT SET') . "\n";
-echo "DB_NAME = " . (getenv('DB_NAME') ?: $_ENV['DB_NAME'] ?? 'NOT SET') . "\n";
-echo "DB_USER = " . (getenv('DB_USER') ?: $_ENV['DB_USER'] ?? 'NOT SET') . "\n";
-echo "DB_PASS = " . (getenv('DB_PASS') ? 'SET (hidden)' : ($_ENV['DB_PASS'] ?? 'NOT SET')) . "\n";
-echo "DB_PORT = " . (getenv('DB_PORT') ?: $_ENV['DB_PORT'] ?? 'NOT SET') . "\n";
-echo "</pre>";
+echo "<b>Loaded Environment Variables (Server context):</b><br/>";
+echo "MYSQL_URL = " . (getenv('MYSQL_URL') ? 'SET (' . substr(getenv('MYSQL_URL'), 0, 15) . '...)' : 'NOT SET') . "<br/>";
+echo "MYSQL_PUBLIC_URL = " . (getenv('MYSQL_PUBLIC_URL') ? 'SET' : 'NOT SET') . "<br/>";
+echo "DB_HOST = " . (getenv('DB_HOST') ? getenv('DB_HOST') : 'NOT SET') . "<br/>";
+echo "DB_PORT = " . (getenv('DB_PORT') ? getenv('DB_PORT') : 'NOT SET') . "<br/>";
 
-echo "<h2>Testing Autoloader...</h2>";
-if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
-    require_once __DIR__ . '/../vendor/autoload.php';
-    echo "<p style='color:green'>✅ vendor/autoload.php found!</p>";
+echo "<br/><b>Parsed Connection Output:</b><br/>";
+$url = getenv('MYSQL_URL');
+if ($url) {
+    $parsed = parse_url($url);
+    echo "Parsed Host: " . ($parsed['host'] ?? 'N/A') . "<br/>";
+    echo "Parsed Port: " . ($parsed['port'] ?? 'N/A') . "<br/>";
+    echo "Parsed User: " . ($parsed['user'] ?? 'N/A') . "<br/>";
 } else {
-    echo "<p style='color:red'>❌ vendor/autoload.php NOT FOUND!</p>";
+    echo "No MYSQL_URL to parse.<br/>";
 }
 
-echo "<h2>Testing DB Connection...</h2>";
+echo "<br/>To check actual DB connection, visit setup.php";
+
 try {
     require_once __DIR__ . '/../vendor/autoload.php';
     $db = (new \App\Config\Database())->connect();
