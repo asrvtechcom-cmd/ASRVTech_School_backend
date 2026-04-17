@@ -1,0 +1,9 @@
+/vendor/
+/config.env
+/.env
+/db_test.php
+/test_mail.php
+/test_forgot_flow.php
+/.env.example.bak
+/.vscode/
+/public/

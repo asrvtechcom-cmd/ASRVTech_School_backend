@@ -1,0 +1,15 @@
+{
+  "name": "kindergarten/backend-api",
+  "description": "Kindergarten School Management REST API",
+  "type": "project",
+  "require": {
+    "php": "^8.0",
+    "phpmailer/phpmailer": "^6.9",
+    "appwrite/appwrite": "^23.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  }
+}
