@@ -87,6 +87,14 @@ if ($scriptDir !== '/' && $scriptDir !== '\\' && str_starts_with($requestPath, $
 }
 $requestPath = $requestPath === '' ? '/' : $requestPath;
 
+if ($requestPath === '/') {
+    Response::json(true, 'ASRVTech API is running', [
+        'php_version' => phpversion(),
+        'status' => 'online'
+    ], 200);
+    exit;
+}
+
 if (!isset($routes[$method][$requestPath])) {
     Response::json(false, 'Route Not Found', [
         'method' => $method,
