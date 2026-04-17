@@ -5,21 +5,22 @@ error_reporting(E_ALL);
 
 echo "<h1>PHP Debug Info</h1>";
 echo "<h2>PHP Version: " . phpversion() . "</h2>";
-echo "<b>Loaded Environment Variables (Server context):</b><br/>";
-echo "MYSQL_URL = " . (getenv('MYSQL_URL') ? 'SET (' . substr(getenv('MYSQL_URL'), 0, 15) . '...)' : 'NOT SET') . "<br/>";
-echo "MYSQL_PUBLIC_URL = " . (getenv('MYSQL_PUBLIC_URL') ? 'SET' : 'NOT SET') . "<br/>";
-echo "DB_HOST = " . (getenv('DB_HOST') ? getenv('DB_HOST') : 'NOT SET') . "<br/>";
-echo "DB_PORT = " . (getenv('DB_PORT') ? getenv('DB_PORT') : 'NOT SET') . "<br/>";
-
-echo "<br/><b>Parsed Connection Output:</b><br/>";
-$url = getenv('MYSQL_URL');
-if ($url) {
-    $parsed = parse_url($url);
-    echo "Parsed Host: " . ($parsed['host'] ?? 'N/A') . "<br/>";
-    echo "Parsed Port: " . ($parsed['port'] ?? 'N/A') . "<br/>";
-    echo "Parsed User: " . ($parsed['user'] ?? 'N/A') . "<br/>";
-} else {
-    echo "No MYSQL_URL to parse.<br/>";
+echo "<br/><b>Database Configuration (as interpreted by app):</b><br/>";
+try {
+    require_once __DIR__ . '/../vendor/autoload.php';
+    $db = new \App\Config\Database();
+    
+    // Use reflection to peek at private properties for debugging
+    $reflection = new ReflectionClass($db);
+    $props = ['host', 'port', 'dbName', 'username'];
+    foreach ($props as $pName) {
+        $prop = $reflection->getProperty($pName);
+        $prop->setAccessible(true);
+        $val = $prop->getValue($db);
+        echo "Configured " . ucfirst($pName) . ": " . ($val ?: '<i>empty</i>') . "<br/>";
+    }
+} catch (Exception $e) {
+    echo "Error inspecting database config: " . $e->getMessage();
 }
 
 echo "<br/>To check actual DB connection, visit setup.php";

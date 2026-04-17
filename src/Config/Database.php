@@ -21,6 +21,11 @@ class Database
         $url = $this->getEnvVar('MYSQL_URL', $this->getEnvVar('DATABASE_URL', ''));
         
         if (!empty($url)) {
+            // Ensure URL has a scheme for parse_url to work correctly
+            if (!str_contains($url, '://')) {
+                $url = 'mysql://' . $url;
+            }
+            
             $parsed = parse_url($url);
             $this->host = $parsed['host'] ?? '127.0.0.1';
             $this->port = (string) ($parsed['port'] ?? '3306');
