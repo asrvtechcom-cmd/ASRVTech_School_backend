@@ -8,13 +8,17 @@ class Helper
 {
     public static function getJsonInput(): array
     {
+        // 1. Try to get JSON from the request body
         $raw = file_get_contents('php://input');
-        if ($raw === false || trim($raw) === '') {
-            return [];
+        if ($raw !== false && trim($raw) !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
         }
 
-        $decoded = json_decode($raw, true);
-        return is_array($decoded) ? $decoded : [];
+        // 2. Fallback to standard POST data (for Postman form-data)
+        return $_POST;
     }
 
     public static function getBearerToken(): ?string
