@@ -17,18 +17,15 @@ $targetEmail = 'singhshubham29392@gmail.com';
 echo "<h1>SMTP Email Test</h1>";
 
 // --- PRE-FLIGHT CHECK ---
-echo "<h3>Pre-flight Environment Check</h3>";
-$host = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
-$port = getenv('SMTP_PORT') ?: '587 (Default)';
-$user = getenv('SMTP_USER') ?: 'NOT SET';
-$pass = getenv('SMTP_PASS') ? 'SET (Hidden)' : 'NOT SET';
+echo "<h3>Pre-flight Environment Check (API)</h3>";
+$apiKey = getenv('RESEND_API_KEY') ? 'SET (Hidden)' : 'NOT SET';
+$from = getenv('MAIL_FROM') ?: 'onboarding@resend.dev (Default)';
 
 echo "<ul>";
-echo "<li><strong>SMTP Host:</strong> $host</li>";
-echo "<li><strong>SMTP Port:</strong> $port</li>";
-echo "<li><strong>SMTP User:</strong> $user</li>";
-echo "<li><strong>SMTP Pass:</strong> $pass</li>";
+echo "<li><strong>Resend API Key:</strong> $apiKey</li>";
+echo "<li><strong>From Email:</strong> $from</li>";
 echo "</ul>";
+echo "<p><em>Note: If you haven't verified a domain in Resend, you can ONLY send to your account email.</em></p>";
 echo "<hr/>";
 // ------------------------
 
