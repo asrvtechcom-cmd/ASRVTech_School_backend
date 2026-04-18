@@ -16,15 +16,26 @@ class Mailer
 
         // Server settings from ENV
         $mail->isSMTP();
-        $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = getenv('SMTP_USER');
-        $mail->Password   = getenv('SMTP_PASS');
-        $mail->SMTPSecure = getenv('SMTP_SECURE') === 'tls' ? PHPMailer::ENCRYPTION_STARTTLS : PHPMailer::ENCRYPTION_SMTPS;
-        $mail->Port       = (int) (getenv('SMTP_PORT') ?: 587);
+        $host = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
+        $port = (int) (getenv('SMTP_PORT') ?: 587);
+        $user = getenv('SMTP_USER');
+        $pass = getenv('SMTP_PASS');
+        $secure = getenv('SMTP_SECURE');
 
-        $fromEmail = getenv('MAIL_FROM') ?: 'no-reply@yourdomain.com';
-        $fromName = getenv('MAIL_FROM_NAME') ?: 'Kindergarten School';
+        // Automatic security selection if not explicitly provided
+        if (!$secure) {
+            $secure = ($port === 465) ? 'ssl' : 'tls';
+        }
+
+        $mail->Host       = $host;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $user;
+        $mail->Password   = $pass;
+        $mail->SMTPSecure = ($secure === 'ssl') ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = $port;
+
+        $fromEmail = getenv('MAIL_FROM') ?: $user ?: 'no-reply@asrvtech.com';
+        $fromName = getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten';
 
         $mail->setFrom($fromEmail, $fromName);
         $mail->isHTML(true);
