@@ -69,7 +69,7 @@ class AuthController
             $userModel->storeResetToken((int) $user['id'], $token, $expiresAt);
 
             $baseUrl = getenv('APP_URL') ?: 'http://localhost:8000';
-            $resetLink = $baseUrl . '/api/v1/reset-password?token=' . urlencode($token);
+            $resetLink = $baseUrl . '/reset-password.php?token=' . urlencode($token);
             
             Mailer::sendPasswordReset($email, $resetLink);
         }
