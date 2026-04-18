@@ -35,15 +35,22 @@ echo "<hr/>";
 echo "Sending test email to: <strong>{$targetEmail}</strong><br/>";
 
 try {
+    // Measure time taken
+    $startTime = microtime(true);
+    
     // Enable verbose debug output for troubleshooting
-    // Note: This will output raw SMTP conversation to the screen
     $success = Mailer::sendTestEmailWithDebug($targetEmail);
+    
+    $endTime = microtime(true);
+    $duration = round($endTime - $startTime, 2);
 
     if ($success) {
         echo "<h2 style='color: green;'>✅ SUCCESS! Email sent successfully.</h2>";
+        echo "Time taken: <strong>{$duration} seconds</strong><br/>";
         echo "Please check the inbox (and spam folder) for <strong>{$targetEmail}</strong>.";
     } else {
         echo "<h2 style='color: red;'>❌ FAILED! Email could not be sent.</h2>";
+        echo "Time taken: <strong>{$duration} seconds</strong> (Failed)<br/>";
         echo "Check your Railway logs or ensure SMTP credentials are correct.";
     }
 } catch (\Exception $e) {
