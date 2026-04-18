@@ -97,10 +97,37 @@ class Mailer
      */
     public static function sendTestEmailWithDebug(string $targetEmail): bool
     {
-        $success = self::sendViaResend($targetEmail, 'Resend API Test', '<h1>API Connection Successful!</h1><p>This email was sent via the Resend HTTPS API, bypassing Railway port blocks.</p>');
-        if (!$success) {
-            echo "<br/><strong>API Error:</strong> Check your RESEND_API_KEY and Ensure you are sending to a verified email address.<br/>";
+        $payload = [
+            'from' => "ASRV Kindergarten <onboarding@resend.dev>",
+            'to' => [$targetEmail],
+            'subject' => 'Resend API Debug Test',
+            'html' => '<h1>API Connection Successful!</h1>',
+        ];
+
+        $apiKey = getenv('RESEND_API_KEY');
+        $ch = curl_init('https://api.resend.com/emails');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return true;
         }
-        return $success;
+
+        echo "<div style='background: #fee; padding: 10px; border: 1px solid red; margin-top: 10px;'>";
+        echo "<strong>RAW API RESPONSE:</strong><br/>";
+        echo "HTTP Code: $httpCode<br/>";
+        echo "Response: <pre>" . htmlspecialchars((string)$response) . "</pre>";
+        echo "</div>";
+        
+        return false;
     }
 }
