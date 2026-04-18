@@ -13,8 +13,24 @@ try {
     }
 
     $db->exec($sql);
-    echo "<h1>✅ Database Tables Created Successfully!</h1>";
-    echo "<p>You can now delete this file and start using the API.</p>";
+    
+    // Create a Default Admin User
+    $adminEmail = 'admin@asrvtech.com';
+    $adminPass = password_hash('admin123', PASSWORD_BCRYPT);
+    $adminName = 'ASRV Admin';
+    
+    $check = $db->prepare("SELECT id FROM users WHERE email = ?");
+    $check->execute([$adminEmail]);
+    
+    if (!$check->fetch()) {
+        $stmt = $db->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'admin')");
+        $stmt->execute([$adminName, $adminEmail, $adminPass]);
+        echo "<h3>✅ Default Admin Account Created!</h3>";
+        echo "<ul><li><strong>Email:</strong> admin@asrvtech.com</li><li><strong>Password:</strong> admin123</li></ul>";
+    }
+
+    echo "<h1>🚀 Database Ready!</h1>";
+    echo "<p>You can now test the Login API in Postman using the credentials above.</p>";
 
 } catch (PDOException $e) {
     echo "<h1>❌ Database Error</h1>";
