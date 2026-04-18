@@ -83,11 +83,19 @@ class Mailer
     {
         $subject = 'Password Reset Request';
         $body = "
-            <p>Hello,</p>
-            <p>Click the link below to reset your password:</p>
-            <p><a href='{$resetLink}'>Reset Password</a></p>
-            <p>This link will expire in 30 minutes.</p>
-            <p>If you did not request this, please ignore this email.</p>
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px;'>
+                <h2 style='color: #333;'>Password Reset Request</h2>
+                <p style='color: #555; font-size: 16px;'>Hello,</p>
+                <p style='color: #555; font-size: 16px;'>We received a request to reset your password. Click the button below to set a new one:</p>
+                
+                <div style='text-align: center; margin: 30px 0;'>
+                    <a href='{$resetLink}' style='background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 18px; display: inline-block; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);'>Reset Password Now</a>
+                </div>
+
+                <p style='color: #777; font-size: 14px;'>This link will expire in 30 minutes for your security.</p>
+                <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
+                <p style='color: #999; font-size: 12px; text-align: center;'>If you did not request this, please ignore this email.</p>
+            </div>
         ";
         return self::sendViaResend($email, $subject, $body);
     }
