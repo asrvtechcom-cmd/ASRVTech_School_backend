@@ -17,15 +17,16 @@ $targetEmail = 'singhshubham29392@gmail.com';
 echo "<h1>SMTP Email Test</h1>";
 
 // --- PRE-FLIGHT CHECK ---
-echo "<h3>Pre-flight Environment Check (API)</h3>";
+echo "<h3>Pre-flight Environment Check (API Mode)</h3>";
 $apiKey = getenv('RESEND_API_KEY') ? 'SET (Hidden)' : 'NOT SET';
-$from = getenv('MAIL_FROM') ?: 'onboarding@resend.dev (Default)';
+// We force this in Mailer.php for now
+$from = 'onboarding@resend.dev'; 
 
 echo "<ul>";
 echo "<li><strong>Resend API Key:</strong> $apiKey</li>";
-echo "<li><strong>From Email:</strong> $from</li>";
+echo "<li><strong>From Email (Forced):</strong> $from</li>";
 echo "</ul>";
-echo "<p><em>Note: If you haven't verified a domain in Resend, you can ONLY send to your account email.</em></p>";
+echo "<p style='color: orange;'><strong>IMPORTANT:</strong> You can only send TO the email address you used to sign up for Resend!</p>";
 echo "<hr/>";
 // ------------------------
 
