@@ -20,9 +20,8 @@ class Mailer
             return false;
         }
 
-        // Resend requires a verified domain to send FROM.
-        // If the user hasn't verified a domain, they MUST use 'onboarding@resend.dev'
-        $fromEmail = getenv('MAIL_FROM') ?: 'onboarding@resend.dev';
+        // FOR RESEND: You can ONLY use 'onboarding@resend.dev' until you verify your own domain.
+        $fromEmail = 'onboarding@resend.dev';
         $fromName = getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten';
 
         $payload = [
