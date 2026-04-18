@@ -25,8 +25,20 @@ try {
     if (!$check->fetch()) {
         $stmt = $db->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'admin')");
         $stmt->execute([$adminName, $adminEmail, $adminPass]);
-        echo "<h3>✅ Default Admin Account Created!</h3>";
-        echo "<ul><li><strong>Email:</strong> admin@asrvtech.com</li><li><strong>Password:</strong> admin123</li></ul>";
+        echo "<h3>✅ Admin Account 1 Created! (admin@asrvtech.com)</h3>";
+    }
+
+    // Create Second Admin (Your Personal Email)
+    $personalEmail = 'singhshubham89124@gmail.com';
+    $personalPass = password_hash('123456', PASSWORD_BCRYPT);
+    
+    $check2 = $db->prepare("SELECT id FROM users WHERE email = ?");
+    $check2->execute([$personalEmail]);
+    
+    if (!$check2->fetch()) {
+        $stmt = $db->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'admin')");
+        $stmt->execute(['Shubham Admin', $personalEmail, $personalPass]);
+        echo "<h3>✅ Admin Account 2 Created! ($personalEmail)</h3>";
     }
 
     echo "<h1>🚀 Database Ready!</h1>";
