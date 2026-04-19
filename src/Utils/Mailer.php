@@ -4,52 +4,53 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use Exception;
 
 class Mailer
 {
     /**
-     * Internal method to send email via Resend API (HTTPS Port 443)
-     * This bypasses the SMTP port blocks on Railway.
+     * Internal method to send email via SMTP (like Gmail)
+     * This bypasses Resend API limits and can send to any address.
      */
-    private static function sendViaResend(string $to, string $subject, string $htmlBody): bool
+    private static function sendViaSMTP(string $to, string $subject, string $htmlBody): bool
     {
-        $apiKey = getenv('RESEND_API_KEY');
-        if (!$apiKey) {
-            error_log("Mailer Error: RESEND_API_KEY is not set.");
+        $mail = new PHPMailer(true);
+
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = getenv('SMTP_USER'); // Your Gmail Address
+            $mail->Password   = getenv('SMTP_PASS'); // Your Google App Password
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = (int) (getenv('SMTP_PORT') ?: 587);
+
+            $fromEmail = getenv('SMTP_USER') ?: 'hello@asrv.com';
+            $fromName  = getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten';
+
+            // Recipients
+            $mail->setFrom($fromEmail, $fromName);
+            $mail->addAddress($to);
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $htmlBody;
+            $mail->AltBody = strip_tags($htmlBody);
+
+            $mail->send();
+            return true;
+
+        } catch (PHPMailerException $e) {
+            error_log("PHPMailer Error: {$mail->ErrorInfo}");
+            return false;
+        } catch (Exception $e) {
+            error_log("General Mail Error: " . $e->getMessage());
             return false;
         }
-
-        // FOR RESEND: You can ONLY use 'onboarding@resend.dev' until you verify your own domain.
-        $fromEmail = 'onboarding@resend.dev';
-        $fromName = getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten';
-
-        $payload = [
-            'from' => "$fromName <$fromEmail>",
-            'to' => [$to],
-            'subject' => $subject,
-            'html' => $htmlBody,
-        ];
-
-        $ch = curl_init('https://api.resend.com/emails');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $apiKey,
-            'Content-Type: application/json'
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode >= 200 && $httpCode < 300) {
-            return true;
-        }
-
-        error_log("Resend API Error (HTTP $httpCode): " . $response);
-        return false;
     }
 
     public static function sendAbsentEmail(string $parentEmail, string $studentName, string $date): bool
@@ -62,7 +63,7 @@ class Mailer
             <p>Please contact the school if needed.</p>
             <p>Regards,<br>School Administration</p>
         ";
-        return self::sendViaResend($parentEmail, $subject, $body);
+        return self::sendViaSMTP($parentEmail, $subject, $body);
     }
 
     public static function sendFeeReminder(string $parentEmail, string $studentName, string $amount, string $dueDate): bool
@@ -76,7 +77,7 @@ class Mailer
             <p>Please make the payment as soon as possible.</p>
             <p>Thank you,<br>School Administration</p>
         ";
-        return self::sendViaResend($parentEmail, $subject, $body);
+        return self::sendViaSMTP($parentEmail, $subject, $body);
     }
 
     public static function sendPasswordReset(string $email, string $resetLink): bool
@@ -97,45 +98,6 @@ class Mailer
                 <p style='color: #999; font-size: 12px; text-align: center;'>If you did not request this, please ignore this email.</p>
             </div>
         ";
-        return self::sendViaResend($email, $subject, $body);
-    }
-
-    /**
-     * Debugging method for testing Resend connectivity
-     */
-    public static function sendTestEmailWithDebug(string $targetEmail): bool
-    {
-        $payload = [
-            'from' => "ASRV Kindergarten <onboarding@resend.dev>",
-            'to' => [$targetEmail],
-            'subject' => 'Resend API Debug Test',
-            'html' => '<h1>API Connection Successful!</h1>',
-        ];
-
-        $apiKey = getenv('RESEND_API_KEY');
-        $ch = curl_init('https://api.resend.com/emails');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $apiKey,
-            'Content-Type: application/json'
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode >= 200 && $httpCode < 300) {
-            return true;
-        }
-
-        echo "<div style='background: #fee; padding: 10px; border: 1px solid red; margin-top: 10px;'>";
-        echo "<strong>RAW API RESPONSE:</strong><br/>";
-        echo "HTTP Code: $httpCode<br/>";
-        echo "Response: <pre>" . htmlspecialchars((string)$response) . "</pre>";
-        echo "</div>";
-        
-        return false;
+        return self::sendViaSMTP($email, $subject, $body);
     }
 }
