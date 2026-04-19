@@ -93,10 +93,10 @@ class AuthController
             $resetLink = $baseUrl . '/reset-password.php?token=' . urlencode($token);
             
             Mailer::sendPasswordReset($email, $resetLink);
+            Response::json(true, 'forgot-password', 'A reset link has been sent to your email');
+        } else {
+            Response::json(false, 'Email not registered', null, 404);
         }
-
-        // Always return success for security
-        Response::json(true, 'forgot-password', 'A reset link has been sent if the email exists');
     }
 
     public function resetPassword(): void
