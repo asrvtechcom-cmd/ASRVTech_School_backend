@@ -11,36 +11,41 @@ use Exception;
 class Mailer
 {
     /**
-     * Internal method to send email via Resend API (HTTPS Port 443)
-     * This bypasses the SMTP port blocks on Railway.
+     * Internal method to send email via Brevo API (HTTPS Port 443)
+     * This bypasses both Railway's SMTP blocks AND Resend's Sandbox limits.
      */
-    private static function sendViaResend(string $to, string $subject, string $htmlBody): bool
+    private static function sendViaBrevo(string $to, string $subject, string $htmlBody): bool
     {
-        $apiKey = getenv('RESEND_API_KEY');
+        $apiKey = getenv('BREVO_API_KEY');
         if (!$apiKey) {
-            error_log("Mailer Error: RESEND_API_KEY is not set.");
+            error_log("Mailer Error: BREVO_API_KEY is not set.");
             return false;
         }
 
-        // FOR RESEND: You can ONLY use 'onboarding@resend.dev' until you verify your own domain.
-        $fromEmail = 'onboarding@resend.dev';
+        // Brevo requires the sender email to be the one you verified in their dashboard.
+        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'singhshubham89124@gmail.com';
         $fromName = getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten';
 
         $payload = [
-            'from' => "$fromName <$fromEmail>",
-            'to' => [$to],
+            'sender' => [
+                'name' => $fromName,
+                'email' => $fromEmail
+            ],
+            'to' => [
+                ['email' => $to]
+            ],
             'subject' => $subject,
-            'html' => $htmlBody,
+            'htmlContent' => $htmlBody,
         ];
 
-        $ch = curl_init('https://api.resend.com/emails');
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        // Important: set a short timeout to prevent UI buffering!
+        // 10 second timeout to avoid UI freezes in Flutter
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $apiKey,
+            'api-key: ' . $apiKey,
             'Content-Type: application/json'
         ]);
 
@@ -52,7 +57,7 @@ class Mailer
             return true;
         }
 
-        error_log("Resend API Error (HTTP $httpCode): " . $response);
+        error_log("Brevo API Error (HTTP $httpCode): " . $response);
         return false;
     }
 
@@ -66,7 +71,7 @@ class Mailer
             <p>Please contact the school if needed.</p>
             <p>Regards,<br>School Administration</p>
         ";
-        return self::sendViaResend($parentEmail, $subject, $body);
+        return self::sendViaBrevo($parentEmail, $subject, $body);
     }
 
     public static function sendFeeReminder(string $parentEmail, string $studentName, string $amount, string $dueDate): bool
@@ -80,7 +85,7 @@ class Mailer
             <p>Please make the payment as soon as possible.</p>
             <p>Thank you,<br>School Administration</p>
         ";
-        return self::sendViaResend($parentEmail, $subject, $body);
+        return self::sendViaBrevo($parentEmail, $subject, $body);
     }
 
     public static function sendPasswordReset(string $email, string $resetLink): bool
@@ -101,6 +106,6 @@ class Mailer
                 <p style='color: #999; font-size: 12px; text-align: center;'>If you did not request this, please ignore this email.</p>
             </div>
         ";
-        return self::sendViaResend($email, $subject, $body);
+        return self::sendViaBrevo($email, $subject, $body);
     }
 }
