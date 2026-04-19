@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS homework (
     title VARCHAR(255) NOT NULL,
     description TEXT DEFAULT NULL,
     due_date DATE DEFAULT NULL,
+    file_path VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_homework_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     CONSTRAINT fk_homework_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL,
