@@ -29,6 +29,14 @@ class TeacherController
             Response::json(false, 'name and email are required', null, 422);
         }
 
+        // Handle Photo Upload
+        if (isset($_FILES['photo'])) {
+            $photoUrl = \App\Utils\MediaService::uploadToCloudinary($_FILES['photo']);
+            if ($photoUrl) {
+                $input['photo'] = $photoUrl;
+            }
+        }
+
         $userModel = new UserModel($this->db);
         if ($userModel->findByEmail($email)) {
             Response::json(false, 'A user with this email already exists', null, 400);
@@ -62,6 +70,14 @@ class TeacherController
         
         if ($id <= 0 || empty($input['name']) || empty($input['email'])) {
             Response::json(false, 'id, name and email are required', null, 422);
+        }
+
+        // Handle Photo Upload
+        if (isset($_FILES['photo'])) {
+            $photoUrl = \App\Utils\MediaService::uploadToCloudinary($_FILES['photo']);
+            if ($photoUrl) {
+                $input['photo'] = $photoUrl;
+            }
         }
 
         (new TeacherModel($this->db))->update($id, $input);

@@ -19,10 +19,20 @@ class StudentController
     public function add(): void
     {
         AuthMiddleware::requireRole(['admin']);
+        
+        // Support JSON or Form Data
         $input = Helper::getJsonInput();
         
         if (empty($input['name']) || empty($input['class_id'])) {
             Response::json(false, 'name and class_id are required', null, 422);
+        }
+
+        // Handle Photo Upload
+        if (isset($_FILES['photo'])) {
+            $photoUrl = \App\Utils\MediaService::uploadToCloudinary($_FILES['photo']);
+            if ($photoUrl) {
+                $input['photo'] = $photoUrl;
+            }
         }
 
         $id = (new StudentModel($this->db))->add($input);
@@ -44,6 +54,14 @@ class StudentController
         
         if ($id <= 0 || empty($input['name']) || empty($input['class_id'])) {
             Response::json(false, 'id, name and class_id are required', null, 422);
+        }
+
+        // Handle Photo Upload
+        if (isset($_FILES['photo'])) {
+            $photoUrl = \App\Utils\MediaService::uploadToCloudinary($_FILES['photo']);
+            if ($photoUrl) {
+                $input['photo'] = $photoUrl;
+            }
         }
 
         (new StudentModel($this->db))->update($id, $input);

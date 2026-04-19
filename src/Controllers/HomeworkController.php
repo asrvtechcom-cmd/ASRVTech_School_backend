@@ -34,23 +34,11 @@ class HomeworkController
 
         $filePath = null;
         if (isset($_FILES['homework_file'])) {
-            $allowedMimes = [
-                'application/pdf', 
-                'application/msword', 
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-                'image/jpeg', 
-                'image/png'
-            ];
-            // Ensure path matches "uploads/homework/" as requested
-            $targetDir = __DIR__ . '/../../public/uploads/homework';
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0777, true);
-            }
-            
-            $filePath = Helper::uploadFile($_FILES['homework_file'], $targetDir, $allowedMimes);
+            // Upload to Cloudinary instead of local disk
+            $filePath = \App\Utils\MediaService::uploadToCloudinary($_FILES['homework_file']);
             
             if (!$filePath && $_FILES['homework_file']['error'] !== UPLOAD_ERR_NO_FILE) {
-                Response::json(false, 'Invalid file type or size (max 5MB). Allowed: PDF, DOC, DOCX, JPG, PNG', null, 400);
+                Response::json(false, 'Cloudinary Upload Failed. Ensure file is under 5MB and preset is valid.', null, 500);
             }
         }
 
