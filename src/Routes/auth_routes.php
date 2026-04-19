@@ -7,6 +7,7 @@ use App\Controllers\AuthController;
 return function (callable $addRoute, PDO $db): void {
     $controller = new AuthController($db);
 
+    $addRoute('POST', '/api/v1/register', fn() => $controller->register());
     $addRoute('POST', '/api/v1/login', fn() => $controller->login());
     $addRoute('POST', '/api/v1/logout', fn() => $controller->logout());
     $addRoute('POST', '/api/v1/forgot-password', fn() => $controller->forgotPassword());

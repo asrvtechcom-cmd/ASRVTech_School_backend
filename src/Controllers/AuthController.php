@@ -18,6 +18,27 @@ class AuthController
     {
     }
 
+    public function register(): void
+    {
+        $input = Helper::getJsonInput();
+        $name = trim($input['name'] ?? '');
+        $email = trim($input['email'] ?? '');
+        $password = $input['password'] ?? '';
+        $role = $input['role'] ?? 'parent'; // Default to parent
+
+        if ($name === '' || $email === '' || $password === '') {
+            Response::json(false, 'Name, email and password are required', null, 422);
+        }
+
+        $userModel = new UserModel($this->db);
+        if ($userModel->findByEmail($email)) {
+            Response::json(false, 'A user with this email already exists', null, 400);
+        }
+
+        $id = $userModel->create($name, $email, $password, $role);
+        Response::json(true, 'register', ['id' => $id, 'message' => 'User registered successfully']);
+    }
+
     public function login(): void
     {
         $input = Helper::getJsonInput();
