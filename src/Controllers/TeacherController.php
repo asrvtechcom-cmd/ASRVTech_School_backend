@@ -45,17 +45,20 @@ class TeacherController
 
         $this->db->beginTransaction();
         try {
-            $userModel->create($name, $email, $password, 'teacher');
-            $teacherId = (new TeacherModel($this->db))->add($input);
-            $this->db->commit();
+            // 1. Create User Login
+            $userId = $userModel->create($name, $email, $password, 'teacher');
             
-            Response::json(true, 'add', ['id' => $teacherId]);
+            // 2. Link Teacher record to User
+            $input['user_id'] = $userId;
+            $teacherId = (new TeacherModel($this->db))->add($input);
+            
+            $this->db->commit();
+            Response::json(true, 'add', ['id' => $teacherId, 'user_id' => $userId]);
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
         }
     }
-
 
     public function list(): void
     {
@@ -82,9 +85,50 @@ class TeacherController
             }
         }
 
-        (new TeacherModel($this->db))->update($id, $input);
-        Response::json(true, 'update', 'Teacher updated successfully');
+        $this->db->beginTransaction();
+        try {
+            $teacherModel = new TeacherModel($this->db);
+            $userModel = new UserModel($this->db);
+            
+            // 1. Find existing teacher to get user_id
+            $stmt = $this->db->prepare('SELECT user_id FROM teachers WHERE id = :id');
+            $stmt->execute(['id' => $id]);
+            $existing = $stmt->fetch();
+            
+            if ($existing && $existing['user_id']) {
+                // 2. Update linked User account
+                $userId = (int) $existing['user_id'];
+                
+                $sql = 'UPDATE users SET name = :name, email = :email';
+                $params = [
+                    'name' => $input['name'],
+                    'email' => $input['email'],
+                    'id' => $userId
+                ];
+                
+                if (!empty($input['password'])) {
+                    $sql .= ', password = :password';
+                    $params['password'] = password_hash((string)$input['password'], PASSWORD_DEFAULT);
+                }
+                
+                $sql .= ' WHERE id = :id';
+                $this->db->prepare($sql)->execute($params);
+                
+                // Keep input in sync
+                $input['user_id'] = $userId;
+            }
+
+            // 3. Update Teacher record
+            $teacherModel->update($id, $input);
+            
+            $this->db->commit();
+            Response::json(true, 'update', 'Teacher and login account updated successfully');
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
+
 
     public function delete(): void
     {

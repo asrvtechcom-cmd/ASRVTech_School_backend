@@ -15,8 +15,8 @@ class Teacher
     public function add(array $data): int
     {
         $stmt = $this->db->prepare('
-            INSERT INTO teachers (name, email, phone, subject, photo)
-            VALUES (:name, :email, :phone, :subject, :photo)
+            INSERT INTO teachers (name, email, phone, subject, photo, user_id)
+            VALUES (:name, :email, :phone, :subject, :photo, :user_id)
         ');
         $stmt->execute([
             'name' => $data['name'],
@@ -24,6 +24,7 @@ class Teacher
             'phone' => $data['phone'] ?? null,
             'subject' => $data['subject'] ?? null,
             'photo' => $data['photo'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
         ]);
         return (int) $this->db->lastInsertId();
     }
@@ -38,7 +39,7 @@ class Teacher
     {
         $stmt = $this->db->prepare('
             UPDATE teachers
-            SET name = :name, email = :email, phone = :phone, subject = :subject, photo = :photo
+            SET name = :name, email = :email, phone = :phone, subject = :subject, photo = :photo, user_id = :user_id
             WHERE id = :id
         ');
         return $stmt->execute([
@@ -48,8 +49,10 @@ class Teacher
             'phone' => $data['phone'] ?? null,
             'subject' => $data['subject'] ?? null,
             'photo' => $data['photo'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
         ]);
     }
+
 
     public function delete(int $id): bool
     {
