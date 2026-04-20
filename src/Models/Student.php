@@ -10,7 +10,25 @@ class Student
 {
     public function __construct(private PDO $db)
     {
+        $this->ensureUserIdColumnExists();
     }
+
+    private function ensureUserIdColumnExists(): void
+    {
+        try {
+            // Check if user_id column exists
+            $stmt = $this->db->query("SHOW COLUMNS FROM students LIKE 'user_id'");
+            if (!$stmt->fetch()) {
+                // Column missing, let's create it
+                $this->db->exec("ALTER TABLE students ADD COLUMN user_id INT DEFAULT NULL");
+                $this->db->exec("ALTER TABLE students ADD CONSTRAINT fk_students_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL");
+            }
+        } catch (\PDOException $e) {
+            // Log but don't crash
+            error_log("Database Migration Error (Students): " . $e->getMessage());
+        }
+    }
+
 
     public function add(array $data): int
     {
