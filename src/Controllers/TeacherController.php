@@ -24,6 +24,7 @@ class TeacherController
         
         $name = trim($input['name'] ?? '');
         $email = trim($input['email'] ?? '');
+        $password = $input['password'] ?? 'teacher123';
 
         if ($name === '' || $email === '') {
             Response::json(false, 'name and email are required', null, 422);
@@ -44,8 +45,8 @@ class TeacherController
 
         $this->db->beginTransaction();
         try {
+            $userModel->create($name, $email, $password, 'teacher');
             $teacherId = (new TeacherModel($this->db))->add($input);
-            $userModel->create($name, $email, 'teacher123', 'teacher');
             $this->db->commit();
             
             Response::json(true, 'add', ['id' => $teacherId]);
@@ -54,6 +55,7 @@ class TeacherController
             throw $e;
         }
     }
+
 
     public function list(): void
     {

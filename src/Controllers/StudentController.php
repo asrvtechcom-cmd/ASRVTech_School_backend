@@ -9,6 +9,7 @@ use App\Utils\Helper;
 use App\Utils\Response;
 use App\Middleware\AuthMiddleware;
 use App\Models\Student as StudentModel;
+use App\Models\User as UserModel;
 
 class StudentController
 {
@@ -20,11 +21,13 @@ class StudentController
     {
         AuthMiddleware::requireRole(['admin']);
         
-        // Support JSON or Form Data
         $input = Helper::getJsonInput();
+        $name = trim($input['name'] ?? '');
+        $email = trim($input['email'] ?? '');
+        $password = $input['password'] ?? 'student123';
         
-        if (empty($input['name']) || empty($input['class_id'])) {
-            Response::json(false, 'name and class_id are required', null, 422);
+        if (empty($name) || empty($input['class_id']) || empty($email)) {
+            Response::json(false, 'name, email and class_id are required', null, 422);
         }
 
         // Handle Photo Upload
@@ -35,8 +38,26 @@ class StudentController
             }
         }
 
-        $id = (new StudentModel($this->db))->add($input);
-        Response::json(true, 'add', ['id' => $id]);
+        $userModel = new UserModel($this->db);
+        if ($userModel->findByEmail($email)) {
+            Response::json(false, 'A user with this email already exists', null, 400);
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // 1. Create User login account
+            $userId = $userModel->create($name, $email, $password, 'student');
+            $input['user_id'] = $userId;
+            
+            // 2. Create Student record
+            $studentId = (new StudentModel($this->db))->add($input);
+            
+            $this->db->commit();
+            Response::json(true, 'Student added successfully', ['id' => $studentId]);
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 
     public function list(): void
@@ -52,8 +73,8 @@ class StudentController
         $input = Helper::getJsonInput();
         $id = (int) ($input['id'] ?? 0);
         
-        if ($id <= 0 || empty($input['name']) || empty($input['class_id'])) {
-            Response::json(false, 'id, name and class_id are required', null, 422);
+        if ($id <= 0 || empty($input['name'])) {
+            Response::json(false, 'id and name are required', null, 422);
         }
 
         // Handle Photo Upload
@@ -67,6 +88,7 @@ class StudentController
         (new StudentModel($this->db))->update($id, $input);
         Response::json(true, 'update', 'Student updated successfully');
     }
+
 
     public function delete(): void
     {

@@ -15,8 +15,8 @@ class Student
     public function add(array $data): int
     {
         $stmt = $this->db->prepare('
-            INSERT INTO students (name, class_id, parent_id, roll_number, date_of_birth, address, photo)
-            VALUES (:name, :class_id, :parent_id, :roll_number, :date_of_birth, :address, :photo)
+            INSERT INTO students (name, class_id, parent_id, roll_number, date_of_birth, address, photo, email, phone, father_name, user_id, password)
+            VALUES (:name, :class_id, :parent_id, :roll_number, :date_of_birth, :address, :photo, :email, :phone, :father_name, :user_id, :password)
         ');
         $stmt->execute([
             'name' => $data['name'],
@@ -26,6 +26,11 @@ class Student
             'date_of_birth' => $data['date_of_birth'] ?? null,
             'address' => $data['address'] ?? null,
             'photo' => $data['photo'] ?? null,
+            'email' => $data['email'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'father_name' => $data['father_name'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+            'password' => $data['password'] ?? null,
         ]);
         return (int) $this->db->lastInsertId();
     }
@@ -48,7 +53,9 @@ class Student
             UPDATE students
             SET name = :name, class_id = :class_id, parent_id = :parent_id,
                 roll_number = :roll_number, date_of_birth = :date_of_birth, 
-                address = :address, photo = :photo
+                address = :address, photo = :photo, email = :email, 
+                phone = :phone, father_name = :father_name, user_id = :user_id,
+                password = :password
             WHERE id = :id
         ');
         return $stmt->execute([
@@ -60,8 +67,14 @@ class Student
             'date_of_birth' => $data['date_of_birth'] ?? null,
             'address' => $data['address'] ?? null,
             'photo' => $data['photo'] ?? null,
+            'email' => $data['email'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'father_name' => $data['father_name'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+            'password' => $data['password'] ?? null,
         ]);
     }
+
 
     public function delete(int $id): bool
     {

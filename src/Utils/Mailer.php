@@ -22,9 +22,10 @@ class Mailer
             return false;
         }
 
-        // Brevo requires the sender email to be the one you verified in their dashboard.
-        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'singhshubham89124@gmail.com';
+        // Support both MAIL_FROM and MAIL_FROM_EMAIL
+        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_FROM') ?: 'singhshubham89124@gmail.com';
         $fromName = getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten';
+
 
         $payload = [
             'sender' => [
