@@ -33,7 +33,13 @@ class Mailer
 
     private static function getSenderEmail(): string
     {
-        return (string) (getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_FROM') ?: 'no-reply@example.com');
+        return (string) (
+            getenv('BREVO_SENDER_EMAIL')
+            ?: getenv('MAIL_FROM_EMAIL')
+            ?: getenv('MAIL_FROM')
+            ?: getenv('SMTP_USER')
+            ?: 'no-reply@example.com'
+        );
     }
 
     private static function getSenderName(): string
@@ -67,6 +73,13 @@ class Mailer
 
         $fromEmail = self::getBrevoSenderEmail();
         $fromName = self::getBrevoSenderName();
+
+        if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL) || str_ends_with(strtolower($fromEmail), '@example.com')) {
+            $msg = "Invalid Brevo sender email configured: {$fromEmail}";
+            error_log("Mailer Error: " . $msg);
+            self::markFailure('brevo', $msg);
+            return false;
+        }
 
 
         $payload = [
@@ -105,6 +118,14 @@ class Mailer
         if ($response === false && stripos($curlError, 'unable to get local issuer certificate') !== false) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+        }
+
+        // Retry once for transient server/network failures.
+        if (($response === false && $curlError !== '') || $httpCode >= 500) {
+            usleep(250000);
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlError = curl_error($ch);
