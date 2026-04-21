@@ -144,6 +144,13 @@ class Helper
                 $_SERVER[$key] = $value;
             }
         }
+
+        // Ensure a consistent app timezone for all date()/strtotime() operations.
+        $tz = (string) (getenv('APP_TIMEZONE') ?: getenv('TZ') ?: 'Asia/Kolkata');
+        if (!in_array($tz, timezone_identifiers_list(), true)) {
+            $tz = 'Asia/Kolkata';
+        }
+        date_default_timezone_set($tz);
     }
 
     public static function uploadFile(array $file, string $targetDir, array $allowedMimes = [], int $maxSize = 5242880): ?string

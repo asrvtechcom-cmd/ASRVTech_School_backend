@@ -108,6 +108,7 @@ class AuthController
             Response::json(true, 'forgot-password', [
                 'message' => 'Reset link sent immediately to your registered email',
                 'provider' => Mailer::getLastProvider(),
+                'timezone' => date_default_timezone_get(),
                 'sent_at' => date('Y-m-d H:i:s'),
                 'expires_at' => $expiresAt
             ]);
