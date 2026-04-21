@@ -268,17 +268,20 @@ class Mailer
         return self::sendWithFallback($parentEmail, $subject, $body);
     }
 
-    public static function sendPasswordReset(string $email, string $resetLink, int $expiryMinutes = 120): bool
+    public static function sendPasswordReset(string $email, string $resetLink, int $expiryMinutes = 10): bool
     {
         $subject = 'Password Reset Request';
-        $expiryMinutes = max(30, $expiryMinutes);
+        $expiryMinutes = max(1, $expiryMinutes);
         $body = "
             <div style='font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 18px; border: 1px solid #e5e7eb; border-radius: 8px; color:#111827;'>
                 <h2 style='margin:0 0 12px;'>Password Reset</h2>
                 <p style='margin:0 0 12px;'>We received a request to reset your ASRV account password.</p>
-                <p style='margin:0 0 16px;'>Use this secure link:</p>
-                <p style='word-break:break-all; margin:0 0 16px;'>
-                    <a href='{$resetLink}'>{$resetLink}</a>
+                <p style='margin:0 0 16px;'>Click the button below to continue:</p>
+                <p style='margin:0 0 18px; text-align:center;'>
+                    <a href='{$resetLink}' style='display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:700;'>Reset Password</a>
+                </p>
+                <p style='word-break:break-all; margin:0 0 16px; font-size:12px; color:#6b7280;'>
+                    If button does not work, use this link: <a href='{$resetLink}'>{$resetLink}</a>
                 </p>
                 <p style='margin:0 0 12px;'>This link expires in {$expiryMinutes} minutes.</p>
                 <p style='margin:0; font-size:12px; color:#6b7280;'>If you did not request this, ignore this email.</p>

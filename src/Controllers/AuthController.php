@@ -85,9 +85,9 @@ class AuthController
         $user = $userModel->findByEmail($email);
         
         if ($user) {
-            $ttlMinutes = (int) (getenv('RESET_TOKEN_TTL_MINUTES') ?: 120);
-            if ($ttlMinutes < 30) {
-                $ttlMinutes = 30;
+            $ttlMinutes = (int) (getenv('RESET_TOKEN_TTL_MINUTES') ?: 10);
+            if ($ttlMinutes <= 0) {
+                $ttlMinutes = 10;
             }
 
             $token = Helper::randomToken(64);
