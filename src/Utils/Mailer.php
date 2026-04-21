@@ -6,10 +6,19 @@ namespace App\Utils;
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
-use Exception;
 
 class Mailer
 {
+    private static function getSenderEmail(): string
+    {
+        return (string) (getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_FROM') ?: 'no-reply@example.com');
+    }
+
+    private static function getSenderName(): string
+    {
+        return (string) (getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten');
+    }
+
     /**
      * Internal method to send email via Brevo API (HTTPS Port 443)
      * This bypasses both Railway's SMTP blocks AND Resend's Sandbox limits.
@@ -22,9 +31,8 @@ class Mailer
             return false;
         }
 
-        // Support both MAIL_FROM and MAIL_FROM_EMAIL
-        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_FROM') ?: 'singhshubham89124@gmail.com';
-        $fromName = getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten';
+        $fromEmail = self::getSenderEmail();
+        $fromName = self::getSenderName();
 
 
         $payload = [
@@ -75,6 +83,120 @@ class Mailer
         return false;
     }
 
+    private static function sendViaResend(string $to, string $subject, string $htmlBody): bool
+    {
+        $apiKey = getenv('RESEND_API_KEY');
+        if (!$apiKey) {
+            error_log('Mailer Error: RESEND_API_KEY is not set.');
+            return false;
+        }
+
+        $from = getenv('RESEND_FROM') ?: (self::getSenderName() . ' <' . self::getSenderEmail() . '>');
+        $payload = [
+            'from' => $from,
+            'to' => [$to],
+            'subject' => $subject,
+            'html' => $htmlBody,
+        ];
+
+        $ch = curl_init('https://api.resend.com/emails');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_setopt($ch, CURLOPT_NOSIGNAL, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return true;
+        }
+
+        if ($response === false) {
+            error_log("Resend API cURL Error: " . $curlError);
+            return false;
+        }
+
+        error_log("Resend API Error (HTTP $httpCode): " . $response);
+        return false;
+    }
+
+    private static function sendViaSmtp(string $to, string $subject, string $htmlBody): bool
+    {
+        $host = getenv('SMTP_HOST') ?: '';
+        $port = (int) (getenv('SMTP_PORT') ?: 587);
+        $user = getenv('SMTP_USER') ?: '';
+        $pass = getenv('SMTP_PASS') ?: '';
+        $secure = strtolower((string) (getenv('SMTP_SECURE') ?: 'tls'));
+
+        if ($host === '' || $user === '' || $pass === '') {
+            error_log('Mailer Error: SMTP credentials are incomplete.');
+            return false;
+        }
+
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host = $host;
+            $mail->SMTPAuth = true;
+            $mail->Username = $user;
+            $mail->Password = $pass;
+            $mail->Port = $port;
+            $mail->Timeout = 12;
+            $mail->SMTPKeepAlive = false;
+
+            if ($secure === 'ssl') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            } else {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            }
+
+            $mail->setFrom(self::getSenderEmail(), self::getSenderName());
+            $mail->addAddress($to);
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body = $htmlBody;
+            $mail->AltBody = strip_tags($htmlBody);
+            $mail->send();
+            return true;
+        } catch (PHPMailerException $e) {
+            error_log('SMTP Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private static function sendWithFallback(string $to, string $subject, string $htmlBody): bool
+    {
+        $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'brevo,resend,smtp'));
+        $providers = array_filter(array_map('trim', explode(',', $providerOrder)));
+
+        foreach ($providers as $provider) {
+            $sent = false;
+            if ($provider === 'brevo') {
+                $sent = self::sendViaBrevo($to, $subject, $htmlBody);
+            } elseif ($provider === 'resend') {
+                $sent = self::sendViaResend($to, $subject, $htmlBody);
+            } elseif ($provider === 'smtp') {
+                $sent = self::sendViaSmtp($to, $subject, $htmlBody);
+            }
+
+            if ($sent) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function sendAbsentEmail(string $parentEmail, string $studentName, string $date): bool
     {
         $subject = 'Student Absence Notification';
@@ -85,7 +207,7 @@ class Mailer
             <p>Please contact the school if needed.</p>
             <p>Regards,<br>School Administration</p>
         ";
-        return self::sendViaBrevo($parentEmail, $subject, $body);
+        return self::sendWithFallback($parentEmail, $subject, $body);
     }
 
     public static function sendFeeReminder(string $parentEmail, string $studentName, string $amount, string $dueDate): bool
@@ -99,7 +221,7 @@ class Mailer
             <p>Please make the payment as soon as possible.</p>
             <p>Thank you,<br>School Administration</p>
         ";
-        return self::sendViaBrevo($parentEmail, $subject, $body);
+        return self::sendWithFallback($parentEmail, $subject, $body);
     }
 
     public static function sendPasswordReset(string $email, string $resetLink): bool
@@ -120,6 +242,6 @@ class Mailer
                 <p style='color: #999; font-size: 12px; text-align: center;'>If you did not request this, please ignore this email.</p>
             </div>
         ";
-        return self::sendViaBrevo($email, $subject, $body);
+        return self::sendWithFallback($email, $subject, $body);
     }
 }
