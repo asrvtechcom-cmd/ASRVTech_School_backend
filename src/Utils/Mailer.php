@@ -44,6 +44,16 @@ class Mailer
         return (string) (getenv('MAIL_FROM_NAME') ?: 'ASRV Kindergarten');
     }
 
+    private static function getBrevoSenderEmail(): string
+    {
+        return (string) (getenv('BREVO_SENDER_EMAIL') ?: self::getSenderEmail());
+    }
+
+    private static function getBrevoSenderName(): string
+    {
+        return (string) (getenv('BREVO_SENDER_NAME') ?: self::getSenderName());
+    }
+
     /**
      * Internal method to send email via Brevo API (HTTPS Port 443)
      * This bypasses both Railway's SMTP blocks AND Resend's Sandbox limits.
@@ -58,8 +68,8 @@ class Mailer
             return false;
         }
 
-        $fromEmail = self::getSenderEmail();
-        $fromName = self::getSenderName();
+        $fromEmail = self::getBrevoSenderEmail();
+        $fromName = self::getBrevoSenderName();
 
 
         $payload = [
@@ -72,11 +82,9 @@ class Mailer
             ],
             'subject' => $subject,
             'htmlContent' => $htmlBody,
-            'headers' => [
-                'X-Mailer' => 'ASRVTech API',
-                'X-Priority' => '1',
-                'Priority' => 'urgent',
-            ],
+            'textContent' => trim(preg_replace('/\s+/', ' ', strip_tags($htmlBody))),
+            'replyTo' => ['email' => (string) (getenv('MAIL_REPLY_TO') ?: $fromEmail), 'name' => $fromName],
+            'headers' => ['X-Mailer' => 'ASRVTech API'],
         ];
 
         $ch = curl_init('https://api.brevo.com/v3/smtp/email');
@@ -238,8 +246,8 @@ class Mailer
 
     private static function sendWithFallback(string $to, string $subject, string $htmlBody): bool
     {
-        // Prefer Resend first for faster transactional delivery in most setups.
-        $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'resend,brevo,smtp'));
+        // Prefer Brevo first for this project.
+        $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'brevo,resend,smtp'));
         $providers = array_filter(array_map('trim', explode(',', $providerOrder)));
 
         self::$lastProvider = '';
@@ -298,18 +306,15 @@ class Mailer
         $subject = 'Password Reset Request';
         $expiryMinutes = max(30, $expiryMinutes);
         $body = "
-            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px;'>
-                <h2 style='color: #333;'>Password Reset Request</h2>
-                <p style='color: #555; font-size: 16px;'>Hello,</p>
-                <p style='color: #555; font-size: 16px;'>We received a request to reset your password. Click the button below to set a new one:</p>
-                
-                <div style='text-align: center; margin: 30px 0;'>
-                    <a href='{$resetLink}' style='background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 18px; display: inline-block; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);'>Reset Password Now</a>
-                </div>
-
-                <p style='color: #777; font-size: 14px;'>This link will expire in {$expiryMinutes} minutes for your security.</p>
-                <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
-                <p style='color: #999; font-size: 12px; text-align: center;'>If you did not request this, please ignore this email.</p>
+            <div style='font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 18px; border: 1px solid #e5e7eb; border-radius: 8px; color:#111827;'>
+                <h2 style='margin:0 0 12px;'>Password Reset</h2>
+                <p style='margin:0 0 12px;'>We received a request to reset your ASRV account password.</p>
+                <p style='margin:0 0 16px;'>Use this secure link:</p>
+                <p style='word-break:break-all; margin:0 0 16px;'>
+                    <a href='{$resetLink}'>{$resetLink}</a>
+                </p>
+                <p style='margin:0 0 12px;'>This link expires in {$expiryMinutes} minutes.</p>
+                <p style='margin:0; font-size:12px; color:#6b7280;'>If you did not request this, ignore this email.</p>
             </div>
         ";
         return self::sendWithFallback($email, $subject, $body);

@@ -89,6 +89,22 @@ class User
         ]);
     }
 
+    public function invalidateActiveResetTokensForUser(int $userId): bool
+    {
+        $stmt = $this->db->prepare('
+            UPDATE password_resets
+            SET used_at = NOW()
+            WHERE user_id = :user_id AND used_at IS NULL
+        ');
+        return $stmt->execute(['user_id' => $userId]);
+    }
+
+    public function deleteResetTokenByValue(string $token): bool
+    {
+        $stmt = $this->db->prepare('DELETE FROM password_resets WHERE token = :token');
+        return $stmt->execute(['token' => $token]);
+    }
+
     public function getValidResetByToken(string $token): ?array
     {
         $stmt = $this->db->prepare('

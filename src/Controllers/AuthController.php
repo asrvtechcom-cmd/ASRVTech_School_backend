@@ -92,6 +92,9 @@ class AuthController
 
             $token = Helper::randomToken(64);
             $expiresAt = date('Y-m-d H:i:s', strtotime("+{$ttlMinutes} minutes"));
+
+            // Keep only one active reset token per user.
+            $userModel->invalidateActiveResetTokensForUser((int) $user['id']);
             $userModel->storeResetToken((int) $user['id'], $token, $expiresAt);
 
             $baseUrl = getenv('APP_URL') ?: 'http://localhost:8000';
@@ -99,6 +102,8 @@ class AuthController
 
             $mailSent = Mailer::sendPasswordReset($email, $resetLink, $ttlMinutes);
             if (!$mailSent) {
+                // Prevent storing dead reset tokens when email dispatch fails.
+                $userModel->deleteResetTokenByValue($token);
                 Response::json(false, 'Unable to send reset email right now. Please try again in a moment.', [
                     'provider' => Mailer::getLastProvider(),
                     'reason' => Mailer::getLastError(),
