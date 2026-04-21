@@ -85,14 +85,19 @@ class AuthController
         $user = $userModel->findByEmail($email);
         
         if ($user) {
+            $ttlMinutes = (int) (getenv('RESET_TOKEN_TTL_MINUTES') ?: 120);
+            if ($ttlMinutes < 30) {
+                $ttlMinutes = 30;
+            }
+
             $token = Helper::randomToken(64);
-            $expiresAt = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+            $expiresAt = date('Y-m-d H:i:s', strtotime("+{$ttlMinutes} minutes"));
             $userModel->storeResetToken((int) $user['id'], $token, $expiresAt);
 
             $baseUrl = getenv('APP_URL') ?: 'http://localhost:8000';
             $resetLink = $baseUrl . '/reset-password.php?token=' . urlencode($token);
 
-            $mailSent = Mailer::sendPasswordReset($email, $resetLink);
+            $mailSent = Mailer::sendPasswordReset($email, $resetLink, $ttlMinutes);
             if (!$mailSent) {
                 Response::json(false, 'Unable to send reset email right now. Please try again in a moment.', [
                     'provider' => Mailer::getLastProvider(),

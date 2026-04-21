@@ -292,9 +292,10 @@ class Mailer
         return self::sendWithFallback($parentEmail, $subject, $body);
     }
 
-    public static function sendPasswordReset(string $email, string $resetLink): bool
+    public static function sendPasswordReset(string $email, string $resetLink, int $expiryMinutes = 120): bool
     {
         $subject = 'Password Reset Request';
+        $expiryMinutes = max(30, $expiryMinutes);
         $body = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px;'>
                 <h2 style='color: #333;'>Password Reset Request</h2>
@@ -305,7 +306,7 @@ class Mailer
                     <a href='{$resetLink}' style='background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 18px; display: inline-block; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);'>Reset Password Now</a>
                 </div>
 
-                <p style='color: #777; font-size: 14px;'>This link will expire in 30 minutes for your security.</p>
+                <p style='color: #777; font-size: 14px;'>This link will expire in {$expiryMinutes} minutes for your security.</p>
                 <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
                 <p style='color: #999; font-size: 12px; text-align: center;'>If you did not request this, please ignore this email.</p>
             </div>
