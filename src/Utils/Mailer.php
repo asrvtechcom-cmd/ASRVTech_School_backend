@@ -9,6 +9,31 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 class Mailer
 {
+    private static string $lastProvider = '';
+    private static string $lastError = '';
+
+    public static function getLastProvider(): string
+    {
+        return self::$lastProvider;
+    }
+
+    public static function getLastError(): string
+    {
+        return self::$lastError;
+    }
+
+    private static function markSuccess(string $provider): void
+    {
+        self::$lastProvider = $provider;
+        self::$lastError = '';
+    }
+
+    private static function markFailure(string $provider, string $error): void
+    {
+        self::$lastProvider = $provider;
+        self::$lastError = $error;
+    }
+
     private static function getSenderEmail(): string
     {
         return (string) (getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_FROM') ?: 'no-reply@example.com');
@@ -27,7 +52,9 @@ class Mailer
     {
         $apiKey = getenv('BREVO_API_KEY');
         if (!$apiKey) {
-            error_log("Mailer Error: BREVO_API_KEY is not set.");
+            $msg = "BREVO_API_KEY is not set.";
+            error_log("Mailer Error: " . $msg);
+            self::markFailure('brevo', $msg);
             return false;
         }
 
@@ -68,18 +95,32 @@ class Mailer
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
+
+        // Retry once with relaxed SSL only when local CA bundle is missing.
+        if ($response === false && stripos($curlError, 'unable to get local issuer certificate') !== false) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+        }
         curl_close($ch);
 
         if ($httpCode >= 200 && $httpCode < 300) {
+            self::markSuccess('brevo');
             return true;
         }
 
         if ($response === false) {
-            error_log("Brevo API cURL Error: " . $curlError);
+            $msg = "Brevo API cURL Error: " . $curlError;
+            error_log($msg);
+            self::markFailure('brevo', $msg);
             return false;
         }
 
-        error_log("Brevo API Error (HTTP $httpCode): " . $response);
+        $msg = "Brevo API Error (HTTP $httpCode): " . $response;
+        error_log($msg);
+        self::markFailure('brevo', $msg);
         return false;
     }
 
@@ -87,7 +128,9 @@ class Mailer
     {
         $apiKey = getenv('RESEND_API_KEY');
         if (!$apiKey) {
-            error_log('Mailer Error: RESEND_API_KEY is not set.');
+            $msg = 'RESEND_API_KEY is not set.';
+            error_log('Mailer Error: ' . $msg);
+            self::markFailure('resend', $msg);
             return false;
         }
 
@@ -115,18 +158,32 @@ class Mailer
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
+
+        // Retry once with relaxed SSL only when local CA bundle is missing.
+        if ($response === false && stripos($curlError, 'unable to get local issuer certificate') !== false) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+        }
         curl_close($ch);
 
         if ($httpCode >= 200 && $httpCode < 300) {
+            self::markSuccess('resend');
             return true;
         }
 
         if ($response === false) {
-            error_log("Resend API cURL Error: " . $curlError);
+            $msg = "Resend API cURL Error: " . $curlError;
+            error_log($msg);
+            self::markFailure('resend', $msg);
             return false;
         }
 
-        error_log("Resend API Error (HTTP $httpCode): " . $response);
+        $msg = "Resend API Error (HTTP $httpCode): " . $response;
+        error_log($msg);
+        self::markFailure('resend', $msg);
         return false;
     }
 
@@ -139,7 +196,9 @@ class Mailer
         $secure = strtolower((string) (getenv('SMTP_SECURE') ?: 'tls'));
 
         if ($host === '' || $user === '' || $pass === '') {
-            error_log('Mailer Error: SMTP credentials are incomplete.');
+            $msg = 'SMTP credentials are incomplete.';
+            error_log('Mailer Error: ' . $msg);
+            self::markFailure('smtp', $msg);
             return false;
         }
 
@@ -167,9 +226,12 @@ class Mailer
             $mail->Body = $htmlBody;
             $mail->AltBody = strip_tags($htmlBody);
             $mail->send();
+            self::markSuccess('smtp');
             return true;
         } catch (PHPMailerException $e) {
-            error_log('SMTP Error: ' . $e->getMessage());
+            $msg = 'SMTP Error: ' . $e->getMessage();
+            error_log($msg);
+            self::markFailure('smtp', $msg);
             return false;
         }
     }
@@ -178,6 +240,9 @@ class Mailer
     {
         $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'brevo,resend,smtp'));
         $providers = array_filter(array_map('trim', explode(',', $providerOrder)));
+
+        self::$lastProvider = '';
+        self::$lastError = '';
 
         foreach ($providers as $provider) {
             $sent = false;
@@ -194,6 +259,9 @@ class Mailer
             }
         }
 
+        if (self::$lastError === '') {
+            self::markFailure('none', 'No configured mail provider succeeded.');
+        }
         return false;
     }
 

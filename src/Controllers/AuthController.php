@@ -94,11 +94,15 @@ class AuthController
 
             $mailSent = Mailer::sendPasswordReset($email, $resetLink);
             if (!$mailSent) {
-                Response::json(false, 'Unable to send reset email right now. Please try again in a moment.', null, 500);
+                Response::json(false, 'Unable to send reset email right now. Please try again in a moment.', [
+                    'provider' => Mailer::getLastProvider(),
+                    'reason' => Mailer::getLastError(),
+                ], 500);
             }
 
             Response::json(true, 'forgot-password', [
                 'message' => 'Reset link sent immediately to your registered email',
+                'provider' => Mailer::getLastProvider(),
                 'sent_at' => date('Y-m-d H:i:s'),
                 'expires_at' => $expiresAt
             ]);
