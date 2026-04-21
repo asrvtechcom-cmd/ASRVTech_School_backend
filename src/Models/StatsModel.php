@@ -13,23 +13,8 @@ class StatsModel
     {
     }
 
-    private function tableExists(string $table): bool
-    {
-        try {
-            $stmt = $this->db->prepare('SHOW TABLES LIKE :table_name');
-            $stmt->execute(['table_name' => $table]);
-            return (bool) $stmt->fetchColumn();
-        } catch (PDOException) {
-            return false;
-        }
-    }
-
     private function countTable(string $table): int
     {
-        if (!$this->tableExists($table)) {
-            return 0;
-        }
-
         try {
             $stmt = $this->db->query("SELECT COUNT(*) FROM `{$table}`");
             $value = $stmt?->fetchColumn();
@@ -41,10 +26,6 @@ class StatsModel
 
     private function countUsersByRole(string $role): int
     {
-        if (!$this->tableExists('users')) {
-            return 0;
-        }
-
         try {
             $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE role = :role');
             $stmt->execute(['role' => $role]);
@@ -68,26 +49,22 @@ class StatsModel
 
         $totalRevenue = 0.0;
         $pendingFees = 0.0;
-        if ($this->tableExists('fees')) {
-            try {
-                $paid = $this->db->query("SELECT COALESCE(SUM(amount), 0) FROM fees WHERE status = 'paid'")->fetchColumn();
-                $pending = $this->db->query("SELECT COALESCE(SUM(amount), 0) FROM fees WHERE status IN ('pending', 'unpaid', 'overdue', 'partial')")->fetchColumn();
-                $totalRevenue = (float) ($paid ?? 0);
-                $pendingFees = (float) ($pending ?? 0);
-            } catch (PDOException) {
-                $totalRevenue = 0.0;
-                $pendingFees = 0.0;
-            }
+        try {
+            $paid = $this->db->query("SELECT COALESCE(SUM(amount), 0) FROM fees WHERE status = 'paid'")->fetchColumn();
+            $pending = $this->db->query("SELECT COALESCE(SUM(amount), 0) FROM fees WHERE status IN ('pending', 'unpaid', 'overdue', 'partial')")->fetchColumn();
+            $totalRevenue = (float) ($paid ?? 0);
+            $pendingFees = (float) ($pending ?? 0);
+        } catch (PDOException) {
+            $totalRevenue = 0.0;
+            $pendingFees = 0.0;
         }
 
         $recentStudents = [];
-        if ($this->tableExists('students')) {
-            try {
-                $stmt = $this->db->query('SELECT name, created_at FROM students ORDER BY id DESC LIMIT 5');
-                $recentStudents = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
-            } catch (PDOException) {
-                $recentStudents = [];
-            }
+        try {
+            $stmt = $this->db->query('SELECT name, created_at FROM students ORDER BY id DESC LIMIT 5');
+            $recentStudents = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        } catch (PDOException) {
+            $recentStudents = [];
         }
 
         return [
@@ -102,10 +79,6 @@ class StatsModel
 
     public function getRevenueByMonth(): array
     {
-        if (!$this->tableExists('fees')) {
-            return [];
-        }
-
         try {
             $sql = "SELECT 
                         MONTHNAME(created_at) as month, 
@@ -124,10 +97,6 @@ class StatsModel
 
     public function getAttendanceTrends(): array
     {
-        if (!$this->tableExists('attendance') || !$this->tableExists('students') || !$this->tableExists('classes')) {
-            return [];
-        }
-
         try {
             $sql = "SELECT 
                         c.name as class_name,
@@ -149,10 +118,6 @@ class StatsModel
 
     public function getFeeStatusSummary(): array
     {
-        if (!$this->tableExists('fees')) {
-            return [];
-        }
-
         try {
             $sql = "SELECT 
                         status, 
@@ -169,10 +134,6 @@ class StatsModel
 
     public function getGradeDistribution(): array
     {
-        if (!$this->tableExists('grades')) {
-            return [];
-        }
-
         try {
             $sql = "SELECT 
                         grade, 
