@@ -132,6 +132,13 @@ class Helper
             }
 
             if ($key !== '') {
+                // Do not override runtime environment variables (e.g. Railway secrets).
+                // This keeps production config authoritative while still supporting local files.
+                $existing = getenv($key);
+                if ($existing !== false && trim((string) $existing) !== '') {
+                    continue;
+                }
+
                 putenv("{$key}={$value}");
                 $_ENV[$key] = $value;
                 $_SERVER[$key] = $value;
