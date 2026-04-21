@@ -238,7 +238,8 @@ class Mailer
 
     private static function sendWithFallback(string $to, string $subject, string $htmlBody): bool
     {
-        $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'brevo,resend,smtp'));
+        // Prefer Resend first for faster transactional delivery in most setups.
+        $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'resend,brevo,smtp'));
         $providers = array_filter(array_map('trim', explode(',', $providerOrder)));
 
         self::$lastProvider = '';
