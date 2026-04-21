@@ -97,7 +97,11 @@ class AuthController
                 Response::json(false, 'Unable to send reset email right now. Please try again in a moment.', null, 500);
             }
 
-            Response::json(true, 'forgot-password', 'A reset link has been sent to your email');
+            Response::json(true, 'forgot-password', [
+                'message' => 'Reset link sent immediately to your registered email',
+                'sent_at' => date('Y-m-d H:i:s'),
+                'expires_at' => $expiresAt
+            ]);
         } else {
             Response::json(false, 'Email not registered', null, 404);
         }

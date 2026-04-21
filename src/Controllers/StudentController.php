@@ -85,7 +85,18 @@ class StudentController
             }
         }
 
-        (new StudentModel($this->db))->update($id, $input);
+        $stmt = $this->db->prepare('SELECT * FROM students WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+        $existing = $stmt->fetch();
+
+        if (!$existing) {
+            Response::json(false, 'Student not found', null, 404);
+        }
+
+        // Preserve already saved values when partial payload is sent.
+        $payload = array_merge((array) $existing, $input);
+
+        (new StudentModel($this->db))->update($id, $payload);
         Response::json(true, 'update', 'Student updated successfully');
     }
 
@@ -99,7 +110,34 @@ class StudentController
             Response::json(false, 'id query parameter is required', null, 422);
         }
 
-        (new StudentModel($this->db))->delete($id);
-        Response::json(true, 'delete', 'Student deleted successfully');
+        $studentModel = new StudentModel($this->db);
+        
+        // 1. Find the student to get their user_id
+        $stmt = $this->db->prepare("SELECT user_id FROM students WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        $student = $stmt->fetch();
+        
+        if (!$student) {
+            Response::json(false, 'Student not found', null, 404);
+        }
+
+        $userId = $student['user_id'] ? (int) $student['user_id'] : null;
+
+        $this->db->beginTransaction();
+        try {
+            // 2. Delete Student Record
+            $studentModel->delete($id);
+            
+            // 3. Delete associated User record if exists
+            if ($userId) {
+                (new UserModel($this->db))->delete($userId);
+            }
+            
+            $this->db->commit();
+            Response::json(true, 'Student and associated user account deleted successfully', null);
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 }
