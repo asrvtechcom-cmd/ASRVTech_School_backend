@@ -37,14 +37,21 @@ class Mailer
             ],
             'subject' => $subject,
             'htmlContent' => $htmlBody,
+            'headers' => [
+                'X-Mailer' => 'ASRVTech API',
+                'X-Priority' => '1',
+                'Priority' => 'urgent',
+            ],
         ];
 
         $ch = curl_init('https://api.brevo.com/v3/smtp/email');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        // 10 second timeout to avoid UI freezes in Flutter
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_setopt($ch, CURLOPT_NOSIGNAL, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'api-key: ' . $apiKey,
             'Content-Type: application/json'
@@ -52,10 +59,16 @@ class Mailer
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
 
         if ($httpCode >= 200 && $httpCode < 300) {
             return true;
+        }
+
+        if ($response === false) {
+            error_log("Brevo API cURL Error: " . $curlError);
+            return false;
         }
 
         error_log("Brevo API Error (HTTP $httpCode): " . $response);

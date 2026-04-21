@@ -91,8 +91,12 @@ class AuthController
 
             $baseUrl = getenv('APP_URL') ?: 'http://localhost:8000';
             $resetLink = $baseUrl . '/reset-password.php?token=' . urlencode($token);
-            
-            Mailer::sendPasswordReset($email, $resetLink);
+
+            $mailSent = Mailer::sendPasswordReset($email, $resetLink);
+            if (!$mailSent) {
+                Response::json(false, 'Unable to send reset email right now. Please try again in a moment.', null, 500);
+            }
+
             Response::json(true, 'forgot-password', 'A reset link has been sent to your email');
         } else {
             Response::json(false, 'Email not registered', null, 404);

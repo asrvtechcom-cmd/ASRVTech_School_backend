@@ -8,8 +8,32 @@ use PDO;
 
 class User
 {
+    private static bool $roleEnumEnsured = false;
+
     public function __construct(private PDO $db)
     {
+        $this->ensureRoleEnumIncludesStudent();
+    }
+
+    private function ensureRoleEnumIncludesStudent(): void
+    {
+        if (self::$roleEnumEnsured) {
+            return;
+        }
+
+        try {
+            $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE 'role'");
+            $column = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
+            $type = strtolower((string) ($column['Type'] ?? ''));
+
+            if ($type !== '' && !str_contains($type, "'student'")) {
+                $this->db->exec("ALTER TABLE users MODIFY COLUMN role ENUM('admin','teacher','parent','student') NOT NULL DEFAULT 'parent'");
+            }
+        } catch (\Throwable $e) {
+            error_log('User model migration warning (role enum): ' . $e->getMessage());
+        }
+
+        self::$roleEnumEnsured = true;
     }
 
     public function findByEmail(string $email): ?array

@@ -76,7 +76,10 @@ $routeFiles = [
     $root . '/src/Routes/event_routes.php',
     $root . '/src/Routes/holiday_routes.php',
     $root . '/src/Routes/leave_request_routes.php',
+    $root . '/src/Routes/dashboard_routes.php',
+    $root . '/src/Routes/timetable_routes.php',
 ];
+
 
 foreach ($routeFiles as $file) {
     if (file_exists($file)) {
