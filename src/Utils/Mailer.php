@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as PHPMailerException;
-
 class Mailer
 {
     private static string $lastProvider = '';
@@ -195,59 +192,10 @@ class Mailer
         return false;
     }
 
-    private static function sendViaSmtp(string $to, string $subject, string $htmlBody): bool
-    {
-        $host = getenv('SMTP_HOST') ?: '';
-        $port = (int) (getenv('SMTP_PORT') ?: 587);
-        $user = getenv('SMTP_USER') ?: '';
-        $pass = getenv('SMTP_PASS') ?: '';
-        $secure = strtolower((string) (getenv('SMTP_SECURE') ?: 'tls'));
-
-        if ($host === '' || $user === '' || $pass === '') {
-            $msg = 'SMTP credentials are incomplete.';
-            error_log('Mailer Error: ' . $msg);
-            self::markFailure('smtp', $msg);
-            return false;
-        }
-
-        $mail = new PHPMailer(true);
-        try {
-            $mail->isSMTP();
-            $mail->Host = $host;
-            $mail->SMTPAuth = true;
-            $mail->Username = $user;
-            $mail->Password = $pass;
-            $mail->Port = $port;
-            $mail->Timeout = 12;
-            $mail->SMTPKeepAlive = false;
-
-            if ($secure === 'ssl') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            } else {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            }
-
-            $mail->setFrom(self::getSenderEmail(), self::getSenderName());
-            $mail->addAddress($to);
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body = $htmlBody;
-            $mail->AltBody = strip_tags($htmlBody);
-            $mail->send();
-            self::markSuccess('smtp');
-            return true;
-        } catch (PHPMailerException $e) {
-            $msg = 'SMTP Error: ' . $e->getMessage();
-            error_log($msg);
-            self::markFailure('smtp', $msg);
-            return false;
-        }
-    }
-
     private static function sendWithFallback(string $to, string $subject, string $htmlBody): bool
     {
-        // Prefer Brevo first for this project.
-        $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'brevo,resend,smtp'));
+        // PHPMailer/SMTP removed. Keep API providers only for faster failover.
+        $providerOrder = strtolower((string) (getenv('MAIL_PROVIDER_ORDER') ?: 'brevo,resend'));
         $providers = array_filter(array_map('trim', explode(',', $providerOrder)));
 
         self::$lastProvider = '';
@@ -259,8 +207,6 @@ class Mailer
                 $sent = self::sendViaBrevo($to, $subject, $htmlBody);
             } elseif ($provider === 'resend') {
                 $sent = self::sendViaResend($to, $subject, $htmlBody);
-            } elseif ($provider === 'smtp') {
-                $sent = self::sendViaSmtp($to, $subject, $htmlBody);
             }
 
             if ($sent) {
